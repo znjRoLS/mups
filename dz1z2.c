@@ -153,7 +153,7 @@ int main ( int argc, char *argv[]) {
     err = sequential(argc, argv, &sequential_result, &sequential_time);
     if (err) { return err; }
 
-    finish(sequential_result, parallel_result, sequential_time, parallel_time);
+    finish_1(sequential_result, parallel_result, sequential_time, parallel_time);
 }
 
 
