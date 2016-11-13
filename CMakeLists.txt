@@ -6,6 +6,8 @@ project(rb130102d)
 # Add openmp flags
 FIND_PACKAGE( OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+# Add math lib
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lm")
 
 # Setup dirs
 set(CMAKE_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR})

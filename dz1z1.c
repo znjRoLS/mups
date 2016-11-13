@@ -6,6 +6,9 @@
 
 #include "common.h"
 
+#define OMP_NUM_THREADS 8
+#define OMP_DYNAMIC 0
+
 int main ( int argc, char *argv[] );
 double f ( double x );
 
@@ -33,7 +36,7 @@ int sequential ( int argc, char *argv[], double *result ) {
     double x;
 
     if (argc != 4) {
-        n = 10000000;
+        n = 100000000;
         a = 0.0;
         b = 10.0;
     } else {
@@ -91,7 +94,7 @@ int parallel ( int argc, char *argv[], double *result ) {
     double x;
 
     if (argc != 4) {
-        n = 10000000;
+        n = 100000000;
         a = 0.0;
         b = 10.0;
     } else {
@@ -114,11 +117,23 @@ int parallel ( int argc, char *argv[], double *result ) {
 
     total = 0.0;
 
-    for ( i = 0; i < n; i++ )
+#pragma omp parallel \
+    private(i, x) \
+    reduction(+:total)
+{
+    double num_threads = omp_get_num_threads();
+    int thread_id = omp_get_thread_num();
+
+    int chunk_size = ceil(n/num_threads);
+    int iter_start = thread_id * chunk_size;
+    int iter_end = (thread_id + 1) * chunk_size;
+
+    for ( i = iter_start; i < iter_end; i++ )
     {
         x = ( ( double ) ( n - i - 1 ) * a + ( double ) ( i ) * b ) / ( double ) ( n - 1 );
         total = total + f ( x );
     }
+}
 
     wtime = omp_get_wtime ( ) - wtime;
 
@@ -148,11 +163,7 @@ int main ( int argc, char *argv[]) {
     err = sequential(argc, argv, &sequential_result);
     if (err) { return err; }
 
-    int final_result = fabs(parallel_result - sequential_result) < ACCURACY;
-
-    printf("Difference (parallel) - (sequential) = %f\n", parallel_result - sequential_result);
-
-    printf( (final_result?"TEST PASSED\n":"TEST FAILED\n") );
+    finish(sequential_result, parallel_result);
 }
 
 
