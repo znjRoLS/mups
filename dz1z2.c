@@ -114,23 +114,14 @@ int parallel ( int argc, char *argv[], double *result ) {
 
     total = 0.0;
 
-#pragma omp parallel \
-    private(i, x) \
-    reduction(+:total)
-{
-    double num_threads = omp_get_num_threads();
-    int thread_id = omp_get_thread_num();
-
-    int chunk_size = ceil(n/num_threads);
-    int iter_start = thread_id * chunk_size;
-    int iter_end = (thread_id + 1) * chunk_size;
-
-    for ( i = iter_start; i < iter_end; i++ )
+#pragma omp parallel for \
+    private(x)
+    for ( i = 0; i < n; i++ )
     {
         x = ( ( double ) ( n - i - 1 ) * a + ( double ) ( i ) * b ) / ( double ) ( n - 1 );
+#pragma omp atomic
         total = total + f ( x );
     }
-}
 
     wtime = omp_get_wtime ( ) - wtime;
 
