@@ -1278,18 +1278,22 @@ int parallel(
 
         for (int iter = iter_start; iter < iter_end; iter++) {
 
-            memset(inner_histo, 0, histo_height * histo_width * sizeof(unsigned char));
-            unsigned int i;
-            for (i = 0; i < img_width * img_height; ++i) {
-                const unsigned int value = img[i];
-                if (inner_histo[value] < UINT8_MAX) {
-                    ++inner_histo[value];
-                }
-            }
+                memset(inner_histo, 0, histo_height * histo_width * sizeof(unsigned char));
+                unsigned int i;
+                for (i = 0; i < img_width * img_height; ++i) {
 
-            for (i = 0; i < histo_size; i++) {
-                (*histo)[i] = inner_histo[i];
-            }
+#pragma omp task
+                        {
+                        const unsigned int value = img[i];
+                        if (inner_histo[value] < UINT8_MAX) {
+                            ++inner_histo[value];
+                        }
+                    }
+                }
+
+                for (i = 0; i < histo_size; i++) {
+                    (*histo)[i] = inner_histo[i];
+                }
         }
 
         free(inner_histo);

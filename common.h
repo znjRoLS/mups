@@ -1,5 +1,6 @@
 #define MAX 1024
 #define ACCURACY 0.01
+#define MAXTHREADS 8
 
 int finish_1(double sequential_result, double parallel_result, double sequential_time, double parallel_time) {
     int final_result = fabs(parallel_result - sequential_result) < ACCURACY;
@@ -28,10 +29,13 @@ int finish_2(
 
     for (int i = 0 ; i < sequential_size; i ++) {
         final_result += abs(sequential_result[i] - parallel_result[i]);
+        if (abs(sequential_result[i] - parallel_result[i]) != 0) {
+            printf ("diff at %d\n", i);
+        }
     }
 
     printf("\n----------------------------------\n");
-    printf("Result difference (parallel) - (sequential) = %f\n", final_result);
+    printf("Result difference (parallel) - (sequential) = %d\n", final_result);
     printf("Time gain (parallel) - (sequential) = %f\n", sequential_time - parallel_time);
     printf("Time acceleration (sequential)/(parallel) = %f\n", sequential_time / parallel_time);
     printf( (final_result?"TEST FAILED\n":"TEST PASSED\n") );
