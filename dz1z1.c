@@ -9,8 +9,8 @@
 int main ( int argc, char *argv[] );
 double f ( double x );
 
-int sequential ( int argc, char *argv[], double *result );
-int parallel ( int argc, char *argv[], double *result );
+int sequential ( int argc, char *argv[], double *result, double *time );
+int parallel ( int argc, char *argv[], double *result, double *time );
 
 double f ( double x ) {
     double pi = 3.141592653589793;
@@ -21,7 +21,7 @@ double f ( double x ) {
     return value;
 }
 
-int sequential ( int argc, char *argv[], double *result ) {
+int sequential ( int argc, char *argv[], double *result, double *time ) {
     double a;
     double b;
     double error;
@@ -72,6 +72,7 @@ int sequential ( int argc, char *argv[], double *result ) {
     *result = total;
     printf ( "  Error    = %e\n", error );
     printf ( "  Time     = %f\n", wtime );
+    *time = wtime;
     printf ( "\n" );
     printf ( "  Normal end of execution.\n" );
     printf ( "\n" );
@@ -79,7 +80,7 @@ int sequential ( int argc, char *argv[], double *result ) {
     return 0;
 }
 
-int parallel ( int argc, char *argv[], double *result ) {
+int parallel ( int argc, char *argv[], double *result, double *time ) {
     double a;
     double b;
     double error;
@@ -142,6 +143,7 @@ int parallel ( int argc, char *argv[], double *result ) {
     *result = total;
     printf ( "  Error    = %e\n", error );
     printf ( "  Time     = %f\n", wtime );
+    *time = wtime;
     printf ( "\n" );
     printf ( "  Normal end of execution.\n" );
     printf ( "\n" );
@@ -151,16 +153,16 @@ int parallel ( int argc, char *argv[], double *result ) {
 
 int main ( int argc, char *argv[]) {
 
-    double sequential_result, parallel_result;
+    double sequential_result, parallel_result, sequential_time, parallel_time;
     int err;
 
-    err = parallel(argc, argv, &parallel_result);
+    err = parallel(argc, argv, &parallel_result, &parallel_time);
     if (err) { return err; }
 
-    err = sequential(argc, argv, &sequential_result);
+    err = sequential(argc, argv, &sequential_result, &sequential_time);
     if (err) { return err; }
 
-    finish(sequential_result, parallel_result);
+    finish(sequential_result, parallel_result, sequential_time, parallel_time);
 }
 
 
