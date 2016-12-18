@@ -42,34 +42,35 @@ int parallel ( int argc, char *argv[] , Result *result) {
     double total;
     double wtime;
 
-    double a_my, b_my, n_my, chunkSize, total_my;
+    int n_my;
+    double a_my, b_my, chunkSize, total_my;
 
-    printf("PARALLEL RUN\n");
-
-
-    if (argc != 4) {
-        n = 10000000;
-        a = 0.0;
-        b = 10.0;
-    } else {
-        n = atoi(argv[1]);
-        a = atoi(argv[2]);
-        b = atoi(argv[3]);
-    }
+    printf("PARALLEL RUN %d\n", myrank);
 
     if (myrank == 0) {
+        if (argc != 4) {
+            n = 10000000;
+            a = 0.0;
+            b = 10.0;
+        } else {
+            n = atoi(argv[1]);
+            a = atoi(argv[2]);
+            b = atoi(argv[3]);
+        }
 
-        printf ( "\n" );
-        printf ( "QUAD:\n" );
-        printf ( "  Estimate the integral of f(x) from A to B.\n" );
-        printf ( "  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).\n" );
-        printf ( "\n" );
-        printf ( "  A        = %f\n", a );
-        printf ( "  B        = %f\n", b );
-        printf ( "  N        = %d\n", n );
-        printf ( "  Exact    = %24.16f\n", exact );
+        if (myrank == 0) {
+
+            printf ( "\n" );
+            printf ( "QUAD:\n" );
+            printf ( "  Estimate the integral of f(x) from A to B.\n" );
+            printf ( "  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).\n" );
+            printf ( "\n" );
+            printf ( "  A        = %f\n", a );
+            printf ( "  B        = %f\n", b );
+            printf ( "  N        = %d\n", n );
+            printf ( "  Exact    = %24.16f\n", exact );
+        }
     }
-
 
     wtime = omp_get_wtime ( );
 
@@ -77,7 +78,9 @@ int parallel ( int argc, char *argv[] , Result *result) {
 
 //    printf("myrank %d commsize %d\n", myrank, commSize);
 
-    MPI_Bcast( &a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast( &a, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast( &b, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast( &n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     n_my = (n + commSize - 1)/commSize;
     chunkSize = (b-a)/commSize;
@@ -85,12 +88,8 @@ int parallel ( int argc, char *argv[] , Result *result) {
     b_my = a_my + chunkSize;
 
     total_my = process(a_my,b_my,n_my);
-//    printf("my total: %f\n", total_my);
-//    printf("my a %f my b %f my n %f\n", a_my, b_my, n_my);
 
     MPI_Reduce(&total_my, &total, 1, MPI_DOUBLE, MPI_SUM, 0 ,MPI_COMM_WORLD);
-
-    MPI_Finalize();
 
 //    printf("my final total: %f\n", total);
 
@@ -126,7 +125,7 @@ int sequential ( int argc, char *argv[], Result *result ) {
     double wtime;
     double x;
 
-    printf("SEQUENTIAL RUN\n");
+    printf("SEQUENTIAL RUN %d\n", myrank);
 
     if (argc != 4) {
         n = 10000000;
@@ -211,5 +210,7 @@ int main( int argc, char *argv[] ) {
     if (myrank == 0) {
         compare_and_print(seq_result, par_result, "Numeric integration");
     }
+
+    MPI_Finalize();
 }
 
