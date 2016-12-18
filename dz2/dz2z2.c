@@ -236,9 +236,9 @@ int main (int argc, char *argv[]) {
     sequential(argc, argv, seq_results);
     parallel(argc, argv, par_results);
 
-    compare_and_print_result(seq_results[0], par_results[0], "quadratic");
-    compare_and_print_result(seq_results[1], par_results[1], "trapezoidal");
-    compare_and_print_result(seq_results[2], par_results[2], "simpsons");
+    compare_and_print(seq_results[0], par_results[0], "quadratic");
+    compare_and_print(seq_results[1], par_results[1], "trapezoidal");
+    compare_and_print(seq_results[2], par_results[2], "simpsons");
 
 }
 

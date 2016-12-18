@@ -32,7 +32,7 @@ double process(double a, double b, int n) {
     return total;
 }
 
-int parallel ( int argc, char *argv[] , double *result, double *time) {
+int parallel ( int argc, char *argv[] , Result *result) {
     double a;
     double b;
     double error;
@@ -108,14 +108,14 @@ int parallel ( int argc, char *argv[] , double *result, double *time) {
         printf ( "\n" );
     }
 
-    (*time) = wtime;
-    (*result) = total;
+    result->time = wtime;
+    result->value = total;
 
 
     return 0;
 }
 
-int sequential ( int argc, char *argv[], double *result, double *time ) {
+int sequential ( int argc, char *argv[], Result *result ) {
     double a;
     double b;
     double error;
@@ -171,8 +171,8 @@ int sequential ( int argc, char *argv[], double *result, double *time ) {
     printf ( "  Normal end of execution.\n" );
     printf ( "\n" );
 
-    (*time) = wtime;
-    (*result) = total;
+    result->time = wtime;
+    result->value = total;
 
     return 0;
 }
@@ -189,8 +189,10 @@ double f ( double x ) {
 
 int main( int argc, char *argv[] ) {
 
-    double sequential_result, parallel_result, sequential_time, parallel_time;
+    //double sequential_result, parallel_result, sequential_time, parallel_time;
 
+    Result seq_result;
+    Result par_result;
 
     /* Initialize MPI */
 
@@ -202,12 +204,12 @@ int main( int argc, char *argv[] ) {
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
     if (myrank == 0) {
-        sequential(argc, argv, &sequential_result, &sequential_time);
+        sequential(argc, argv, &seq_result);
     }
-    parallel(argc, argv, &parallel_result, &parallel_time);
+    parallel(argc, argv, &par_result);
 
     if (myrank == 0) {
-        compare_and_print(sequential_result, parallel_result, sequential_time, parallel_time);
+        compare_and_print(seq_result, par_result, "Numeric integration");
     }
 }
 
