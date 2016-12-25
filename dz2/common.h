@@ -33,13 +33,14 @@ int compare_and_print(Result sequential_result, Result parallel_result, const ch
 
 int compare_and_print_vect(Result_Vect sequential_result, Result_Vect parallel_result, const char *label) {
 
+    int final_final_result = 1;
+
     printf("Results compare for %s:\n", label );
 
     if (sequential_result.val_size != parallel_result.val_size) {
         printf("Result size differs!! Sequental size %d, parallel size %d\n", sequential_result.val_size, parallel_result.val_size);
     }
 
-    int final_final_result = 1;
 
     for (int i = 0 ; i < sequential_result.val_size; i ++) {
         int final_result = fabs(parallel_result.value[i] - sequential_result.value[i]) < ACCURACY;

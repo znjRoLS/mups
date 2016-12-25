@@ -258,7 +258,7 @@ int parallel ( int argc, char *argv[], Result_Vect *result )
             success += sscanf ( argv[3], "%lf", &epsilon );
             success += sscanf ( argv[4], "%s", output_file );
 
-            for (int i = strlen(output_file)-1; i >= 0; i--) {
+            for (i = strlen(output_file)-1; i >= 0; i--) {
                 output_file_par[i] = output_file[i];
                 output_file_par[0] = 'p';
             }
@@ -349,8 +349,12 @@ int parallel ( int argc, char *argv[], Result_Vect *result )
   iterate until the  new solution W differs from the old solution U
   by no more than EPSILON.
 */
-
+    int columnsNum, chunkSize, myStart, myEnd, myStartWide, myEndWide, myNumColumns;
+    double ** myColumns, ** myOldColumns;
+    double total_diff;
     MPI_Datatype rowType;
+
+
     //MPI_Type_contiguous(N, MPI_DOUBLE, &rowType);
     MPI_Type_contiguous(500, MPI_DOUBLE, &rowType);
 //    printf("create type with size %d\n", N);
@@ -360,21 +364,21 @@ int parallel ( int argc, char *argv[], Result_Vect *result )
     MPI_Bcast(&M, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&epsilon, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    int columnsNum = M-2;
+    columnsNum = M-2;
 
-    int chunkSize = (columnsNum + commSize - 1) / commSize;
+    chunkSize = (columnsNum + commSize - 1) / commSize;
 
-    int myStart = myrank * chunkSize + 1;
-    int myEnd = myStart + chunkSize;
+    myStart = myrank * chunkSize + 1;
+    myEnd = myStart + chunkSize;
     if (myEnd > M-1)
         myEnd = M-1;
 
-    int myStartWide = myStart - 1;
-    int myEndWide = myEnd + 1;
+    myStartWide = myStart - 1;
+    myEndWide = myEnd + 1;
 
-    int myNumColumns = myEndWide - myStartWide;
+    myNumColumns = myEndWide - myStartWide;
 
-    double** myColumns = (double**) malloc (sizeof(double*) * myNumColumns);
+    myColumns = (double**) malloc (sizeof(double*) * myNumColumns);
     for (int i = 0; i < myEndWide - myStartWide; i ++) {
         myColumns[i] = (double*) malloc(sizeof(double) * N);
     }
@@ -382,33 +386,35 @@ int parallel ( int argc, char *argv[], Result_Vect *result )
 
     //transfer stuff
     if (myrank == 0){
-        for (int i = 0; i < myEndWide - myStartWide; i ++) {
-            for (int  j = 0 ; j < N ; j ++) {
+        int irank;
+        for (i = 0; i < myEndWide - myStartWide; i ++) {
+            for ( j = 0 ; j < N ; j ++) {
                 myColumns[i][j] = w[i][j];
             }
         }
 
 
-        for (int irank = 1; irank < commSize; irank ++) {
-            int otherStart = irank * chunkSize + 1;
-            int otherEnd = otherStart + chunkSize;
+        for ( irank = 1; irank < commSize; irank ++) {
+            int otherStart, otherEnd, otherStartWide, otherEndWide, nekoi;
+            otherStart = irank * chunkSize + 1;
+            otherEnd = otherStart + chunkSize;
             if (otherEnd > M-1)
                 otherEnd = M-1;
 
-            int otherStartWide = otherStart - 1;
-            int otherEndWide = otherEnd + 1;
+            otherStartWide = otherStart - 1;
+            otherEndWide = otherEnd + 1;
 
 
 //            printf("irank %d, otherStartW %d, otherEndWide %d\n", irank, otherStartWide, otherEndWide);
 
-            for (int i = otherStartWide; i < otherEndWide; i ++) {
+            for (nekoi = otherStartWide; nekoi < otherEndWide; nekoi ++) {
 //                printf("Sending column %d to %d\n", i, irank);
-                MPI_Send(w[i], 1, rowType, irank, 123, MPI_COMM_WORLD);
+                MPI_Send(w[nekoi], 1, rowType, irank, 123, MPI_COMM_WORLD);
             }
         }
     }
     else {
-        for (int i = 0; i < myEndWide - myStartWide; i ++) {
+        for (i = 0; i < myEndWide - myStartWide; i ++) {
 //            printf("Receiveing column %d, im %d\n", i, myrank);
             MPI_Status status;
             MPI_Recv(myColumns[i], 1, rowType, 0, 123, MPI_COMM_WORLD, &status);
@@ -422,15 +428,16 @@ int parallel ( int argc, char *argv[], Result_Vect *result )
     printf ( "\n" );
     ctime1 = cpu_time ( );
 
-    double** myOldColumns = (double**) malloc (sizeof(double*) * myNumColumns);
-    for (int i = 0; i < myNumColumns; i ++) {
+    myOldColumns = (double**) malloc (sizeof(double*) * myNumColumns);
+    for (i = 0; i < myNumColumns; i ++) {
         myOldColumns[i] = (double*) malloc(sizeof(double) * N);
     }
 
-    double total_diff = epsilon;
+    total_diff = epsilon;
 
     while ( epsilon <= total_diff )
     {
+        MPI_Request requestsend1, requestsend2, request1, request2;
 //        printf("jel sam opet uso?\n");
 /*
   Save the old solution in U.
@@ -443,7 +450,6 @@ int parallel ( int argc, char *argv[], Result_Vect *result )
             }
         }
 
-        MPI_Request requestsend1, requestsend2, request1, request2;
 
         if (myrank == 0) {
             //communicate only with right one
@@ -557,36 +563,38 @@ int parallel ( int argc, char *argv[], Result_Vect *result )
 
     //transfer stuff back
     if (myrank == 0){
+        int irank;
 //        printf("tuj sam\n");
-        for (int i = 0; i < myEndWide - myStartWide; i ++) {
-            for (int  j = 0 ; j < N ; j ++) {
+        for (i = 0; i < myEndWide - myStartWide; i ++) {
+            for ( j = 0 ; j < N ; j ++) {
                 w[i][j] = myColumns[i][j];
             }
         }
 
 
-        for (int irank = 1; irank < commSize; irank ++) {
-            int otherStart = irank * chunkSize + 1;
-            int otherEnd = otherStart + chunkSize;
+        for (irank = 1; irank < commSize; irank ++) {
+            int otherStart, otherEnd, otherStartWide, otherEndWide, nekoi;
+            otherStart = irank * chunkSize + 1;
+            otherEnd = otherStart + chunkSize;
             if (otherEnd > M-1)
                 otherEnd = M-1;
 
-            int otherStartWide = otherStart - 1;
-            int otherEndWide = otherEnd + 1;
+            otherStartWide = otherStart - 1;
+            otherEndWide = otherEnd + 1;
 
 
 //            printf("irank %d, otherStartW %d, otherEndWide %d\n", irank, otherStartWide, otherEndWide);
 
-            for (int i = otherStartWide+1; i < otherEndWide; i ++) {
+            for (nekoi = otherStartWide+1; nekoi < otherEndWide; nekoi ++) {
 //                printf("Sending column %d to %d\n", i, irank);
                 MPI_Status status;
-                MPI_Recv(w[i], 1, rowType, irank, 123, MPI_COMM_WORLD, &status);
+                MPI_Recv(w[nekoi], 1, rowType, irank, 123, MPI_COMM_WORLD, &status);
             }
         }
     }
     else {
 //        printf("a i ja tuj sam\n");
-        for (int i = 1; i < myEndWide - myStartWide; i ++) {
+        for (i = 1; i < myEndWide - myStartWide; i ++) {
 //            printf("Receiveing column %d, im %d\n", i, myrank);
             MPI_Send(myColumns[i], 1, rowType, 0, 123, MPI_COMM_WORLD);
         }
