@@ -34,6 +34,7 @@ int compare_and_print(Result sequential_result, Result parallel_result, const ch
 int compare_and_print_vect(Result_Vect sequential_result, Result_Vect parallel_result, const char *label) {
 
     int final_final_result = 1;
+    int i;
 
     printf("Results compare for %s:\n", label );
 
@@ -42,7 +43,7 @@ int compare_and_print_vect(Result_Vect sequential_result, Result_Vect parallel_r
     }
 
 
-    for (int i = 0 ; i < sequential_result.val_size; i ++) {
+    for (i = 0 ; i < sequential_result.val_size; i ++) {
         int final_result = fabs(parallel_result.value[i] - sequential_result.value[i]) < ACCURACY;
         if (!final_result) {
             printf("Not accurate enough! sequental %f, parallel %f, diff %f, ind %d, %d\n",

@@ -379,7 +379,7 @@ int parallel ( int argc, char *argv[], Result_Vect *result )
     myNumColumns = myEndWide - myStartWide;
 
     myColumns = (double**) malloc (sizeof(double*) * myNumColumns);
-    for (int i = 0; i < myEndWide - myStartWide; i ++) {
+    for (i = 0; i < myEndWide - myStartWide; i ++) {
         myColumns[i] = (double*) malloc(sizeof(double) * N);
     }
 //    printf("Creted columns with size %d\n", N);
