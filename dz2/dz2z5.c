@@ -31,6 +31,9 @@
 #define NUM_BINS 20
 
 
+#define MPI_TAG_TASK 1
+#define MPI_TAG_NO_MORE_TASKS 2
+
 #include "common.h"
 #include <mpi.h>
 
@@ -1035,6 +1038,8 @@ int parallel( struct pb_Parameters *params, options args )
     struct cartesian *data, *random;
     FILE *outfile;
 
+    double ctime1,ctime2,ctime;
+
 
     MPI_Datatype mpi_cartesian;
 
@@ -1057,7 +1062,8 @@ int parallel( struct pb_Parameters *params, options args )
                                        log10(min_arcmin)));
     memsize = (nbins+2)*sizeof(long long);
 
-    printf("SEQUENTIAL RUN\n");
+    printf("PARALLEL RUN\n");
+    ctime1 = cpu_time ( );
 
     // memory for bin boundaries
     binb = (float *)malloc((nbins+1)*sizeof(float));
@@ -1161,12 +1167,13 @@ int parallel( struct pb_Parameters *params, options args )
             return(0);
         }
 
-        MPI_Isend(&npr, 1, MPI_INT, cnt % (commSize-1) + 1, 0, MPI_COMM_WORLD, requests + (reqcnt++));
-        MPI_Isend(&npd, 1, MPI_INT, cnt % (commSize-1) + 1, 0, MPI_COMM_WORLD, requests + (reqcnt++));
-        MPI_Isend(&nbins, 1, MPI_INT, cnt % (commSize-1) + 1, 0, MPI_COMM_WORLD, requests + (reqcnt++));
-        MPI_Isend(&binb, nbins+1, MPI_FLOAT, cnt % (commSize-1) + 1, 0, MPI_COMM_WORLD, requests + (reqcnt++));
-        MPI_Isend(&data, npd, mpi_cartesian, cnt % (commSize-1) + 1, 0, MPI_COMM_WORLD, requests + (reqcnt++));
-        MPI_Isend(&random, npr, mpi_cartesian, cnt % (commSize-1) + 1, 0, MPI_COMM_WORLD, requests + (reqcnt++));
+
+        MPI_Isend(&npr, 1, MPI_INT, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
+        MPI_Isend(&npd, 1, MPI_INT, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
+        MPI_Isend(&nbins, 1, MPI_INT, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
+        MPI_Isend(&binb, nbins+1, MPI_FLOAT, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
+        MPI_Isend(&data, npd, mpi_cartesian, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
+        MPI_Isend(&random, npr, mpi_cartesian, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
 //        MPI_Isend(RRS, nbins, MPI_LONG_LONG, worker, 0, MPI_COMM_WORLD, requests + (reqcnt++));
 //        MPI_Isend(DRS, nbins, MPI_LONG_LONG, worker, 0, MPI_COMM_WORLD, requests + (reqcnt++));
 
@@ -1224,11 +1231,22 @@ int parallel( struct pb_Parameters *params, options args )
         outfile = stdout;
     }
 
+    ctime2 = cpu_time ( );
+    ctime = ctime2 - ctime1;
+
+    results->time = ctime;
+    results->val_size = nbins * 3;
+    results->value = (double*)malloc(sizeof(double) * nbins*3);
+
     pb_SwitchToTimer( &timers, pb_TimerID_IO );
     for (k = 1; k < nbins+1; k++)
     {
         fprintf(outfile, "%d\n%d\n%d\n", DD[k], DRS[k], RRS[k]);
+        results->value[(k-1) * 3] = DD[k];
+        results->value[(k-1) * 3 + 1] = DRS[k];
+        results->value[(k-1) * 3 + 2] = RRS[k];
     }
+
 
     if(outfile != stdout)
         fclose(outfile);
@@ -1302,7 +1320,7 @@ int do_work() {
 
 }
 
-int sequential( struct pb_Parameters *params, options args )
+int sequential( struct pb_Parameters *params, options args, Result_Vect *results )
 {
     struct pb_TimerSet timers;
     int rf, k, nbins, npd, npr;
@@ -1312,6 +1330,10 @@ int sequential( struct pb_Parameters *params, options args )
     struct cartesian *data, *random;
     FILE *outfile;
 
+    double ctime;
+    double ctime1;
+    double ctime2;
+
     pb_InitializeTimerSet( &timers );
 
     pb_SwitchToTimer( &timers, pb_TimerID_COMPUTE );
@@ -1320,6 +1342,8 @@ int sequential( struct pb_Parameters *params, options args )
     memsize = (nbins+2)*sizeof(long long);
 
     printf("PARALLEL RUN %d\n", myrank);
+
+    ctime1 = cpu_time ( );
 
     // memory for bin boundaries
     binb = (float *)malloc((nbins+1)*sizeof(float));
@@ -1433,10 +1457,21 @@ int sequential( struct pb_Parameters *params, options args )
         outfile = stdout;
     }
 
+
+    ctime2 = cpu_time ( );
+    ctime = ctime2 - ctime1;
+
+    results->time = ctime;
+    results->val_size = nbins * 3;
+    results->value = (double*)malloc(sizeof(double) * nbins*3);
+
     pb_SwitchToTimer( &timers, pb_TimerID_IO );
     for (k = 1; k < nbins+1; k++)
     {
         fprintf(outfile, "%d\n%d\n%d\n", DD[k], DRS[k], RRS[k]);
+        results->value[(k-1) * 3] = DD[k];
+        results->value[(k-1) * 3 + 1] = DRS[k];
+        results->value[(k-1) * 3 + 2] = RRS[k];
     }
 
     if(outfile != stdout)
@@ -1455,6 +1490,8 @@ int sequential( struct pb_Parameters *params, options args )
 }
 
 int main(int argc, char * argv[]) {
+    Result_Vect seq_result;
+    Result_Vect par_result;
 
     struct pb_Parameters *params;
     params = pb_ReadParameters( &argc, argv );
@@ -1472,10 +1509,19 @@ int main(int argc, char * argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 
     if (myrank == 0) {
-        sequential(params, args);
+        sequential(params, args, &seq_result);
     }
 
-    parallel(params, args);
+    if (myrank == 0) {
+        parallel(params, args, &par_result);
+    }
+    else {
+        do_work();
+    }
+
+    if (myrank == 0) {
+        compare_and_print_vect(seq_result, par_result, "Fifth prog TEST");
+    }
 
     pb_FreeParameters( params );
 

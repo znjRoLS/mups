@@ -247,6 +247,11 @@ int parallel ( int argc, char *argv[], Result_Vect *result )
     double **u;
     double **w;
 
+    int columnsNum, chunkSize, myStart, myEnd, myStartWide, myEndWide, myNumColumns;
+    double ** myColumns, ** myOldColumns;
+    double total_diff;
+    MPI_Datatype rowType;
+
     if (myrank == 0) {
 
         if (argc != 5) {
@@ -349,10 +354,6 @@ int parallel ( int argc, char *argv[], Result_Vect *result )
   iterate until the  new solution W differs from the old solution U
   by no more than EPSILON.
 */
-    int columnsNum, chunkSize, myStart, myEnd, myStartWide, myEndWide, myNumColumns;
-    double ** myColumns, ** myOldColumns;
-    double total_diff;
-    MPI_Datatype rowType;
 
 
     //MPI_Type_contiguous(N, MPI_DOUBLE, &rowType);
