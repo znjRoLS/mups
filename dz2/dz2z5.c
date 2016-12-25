@@ -33,12 +33,31 @@
 
 #define MPI_TAG_TASK 1
 #define MPI_TAG_NO_MORE_TASKS 2
+#define MPI_WORKER_READY 3
+#define MPI_MASTER 0
+#define MPI_WORKER_DONE 4
+#define MPI_DATA_TRANSFER 5
 
 #include "common.h"
 #include <mpi.h>
 
-int myrank, commSize;
+# include <stdlib.h>
+# include <stdio.h>
+# include <math.h>
+# include <time.h>
 
+
+int myrank, commSize;
+MPI_Datatype mpi_cartesian;
+
+double cpu_time ( void )
+{
+    double value;
+
+    value = ( double ) clock ( ) / ( double ) CLOCKS_PER_SEC;
+
+    return value;
+}
 
 typedef unsigned long hist_t;
 
@@ -1028,7 +1047,22 @@ int readdatafile(char *fname, struct cartesian *data, int npoints)
     return lcount;
 }
 
-int parallel( struct pb_Parameters *params, options args )
+void commitNewType() {
+    int nitems_mpi_cartesian = 3;
+    int blocklengths_mpi_cartesian[3] = {1,1,1};
+    MPI_Datatype types_mpi_cartesian[3] = {MPI_FLOAT, MPI_FLOAT, MPI_FLOAT};
+    MPI_Aint offsets_mpi_cartesian[3];
+
+    offsets_mpi_cartesian[0] = offsetof(struct cartesian, x);
+    offsets_mpi_cartesian[1] = offsetof(struct cartesian, y);
+    offsets_mpi_cartesian[2] = offsetof(struct cartesian, z);
+
+    MPI_Type_create_struct(nitems_mpi_cartesian, blocklengths_mpi_cartesian, offsets_mpi_cartesian, types_mpi_cartesian, &mpi_cartesian);
+    MPI_Type_commit(&mpi_cartesian);
+
+}
+
+int parallel( struct pb_Parameters *params, options args, Result_Vect *results )
 {
     struct pb_TimerSet timers;
     int rf, k, nbins, npd, npr;
@@ -1040,20 +1074,10 @@ int parallel( struct pb_Parameters *params, options args )
 
     double ctime1,ctime2,ctime;
 
+    int cnt = 0;
+    int reqcnt = 0;
+    int i;
 
-    MPI_Datatype mpi_cartesian;
-
-    int          nitems_mpi_cartesian = 3;
-    int          blocklengths_mpi_cartesian[3] = {1,1,1};
-    MPI_Datatype types_mpi_cartesian[3] = {MPI_FLOAT, MPI_FLOAT, MPI_FLOAT};
-    MPI_Aint     offsets_mpi_cartesian[3];
-
-    offsets_mpi_cartesian[0] = offsetof(struct cartesian, x);
-    offsets_mpi_cartesian[1] = offsetof(struct cartesian, y);
-    offsets_mpi_cartesian[2] = offsetof(struct cartesian, z);
-
-    MPI_Type_create_struct(nitems_mpi_cartesian, blocklengths_mpi_cartesian, offsets_mpi_cartesian, types_mpi_cartesian, &mpi_cartesian);
-    MPI_Type_commit(&mpi_cartesian);
 
     pb_InitializeTimerSet( &timers );
 
@@ -1062,7 +1086,7 @@ int parallel( struct pb_Parameters *params, options args )
                                        log10(min_arcmin)));
     memsize = (nbins+2)*sizeof(long long);
 
-    printf("PARALLEL RUN\n");
+    printf("PARALLEL RUN %d\n", myrank);
     ctime1 = cpu_time ( );
 
     // memory for bin boundaries
@@ -1148,13 +1172,24 @@ int parallel( struct pb_Parameters *params, options args )
 
     // loop through random data files
 
-    int cnt = 0;
-    int reqcnt = 0;
 
-    MPI_Request requests[1000];
+    //MPI_Request requests[1000];
+
+//    printf("Sending to all processes\n");
+    for (i = 1; i < commSize; i++) {
+        int memsize_int = (int)memsize;
+        MPI_Send(&(args.npoints), 1, MPI_INT, i, MPI_DATA_TRANSFER, MPI_COMM_WORLD);
+        MPI_Send(&nbins, 1, MPI_INT, i, MPI_DATA_TRANSFER, MPI_COMM_WORLD);
+        MPI_Send(&memsize_int, 1, MPI_INT, i, MPI_DATA_TRANSFER, MPI_COMM_WORLD);
+    }
+
+//    printf("Sent to all processes\n");
 
     for (rf = 0; rf < args.random_count; rf++)
     {
+        int dummy;
+        MPI_Status status;
+
         // read random file
         pb_SwitchToTimer( &timers, pb_TimerID_IO );
         npr = readdatafile(params->inpFiles[rf+1], random, args.npoints);
@@ -1167,57 +1202,151 @@ int parallel( struct pb_Parameters *params, options args )
             return(0);
         }
 
+        MPI_Recv(&dummy, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
-        MPI_Isend(&npr, 1, MPI_INT, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
-        MPI_Isend(&npd, 1, MPI_INT, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
-        MPI_Isend(&nbins, 1, MPI_INT, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
-        MPI_Isend(&binb, nbins+1, MPI_FLOAT, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
-        MPI_Isend(&data, npd, mpi_cartesian, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
-        MPI_Isend(&random, npr, mpi_cartesian, cnt % (commSize-1) + 1, MPI_TAG_TASK, MPI_COMM_WORLD, requests + (reqcnt++));
-//        MPI_Isend(RRS, nbins, MPI_LONG_LONG, worker, 0, MPI_COMM_WORLD, requests + (reqcnt++));
-//        MPI_Isend(DRS, nbins, MPI_LONG_LONG, worker, 0, MPI_COMM_WORLD, requests + (reqcnt++));
+        while (status.MPI_TAG == MPI_WORKER_DONE) {
 
-//        // compute RR
-//        doCompute(random, npr, NULL, 0, 1, RRS, nbins, binb);
-//
-//        // compute DR
-//        doCompute(data, npd, random, npr, 0, DRS, nbins, binb);
+            int i;
+            int sourceMpiTask = status.MPI_SOURCE;
+            long long *RRS_temp, *DRS_temp;
+
+//            printf("Worker done with work! %d\n", sourceMpiTask);
+
+            RRS_temp = (long long*)malloc(memsize);
+            if (RRS_temp == NULL)
+            {
+                fprintf(stderr, "Unable to allocate memory\n");
+                exit(-1);
+            }
+            bzero(RRS_temp, memsize);
+
+            // memory for DR
+            DRS_temp = (long long*)malloc(memsize);
+            if (DRS_temp == NULL)
+            {
+                fprintf(stderr, "Unable to allocate memory\n");
+                exit(-1);
+            }
+            bzero(DRS_temp, memsize);
+
+//            printf("Receiving data from %d\n", sourceMpiTask);
+
+            MPI_Recv(RRS_temp, nbins+1, MPI_LONG_LONG, sourceMpiTask, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+            MPI_Recv(DRS_temp, nbins+1, MPI_LONG_LONG, sourceMpiTask, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+
+            for (i = 0; i < nbins+1; i ++) {
+                RRS[i] += RRS_temp[i];
+                DRS[i] += DRS_temp[i];
+            }
+
+            free (RRS_temp);
+            free (DRS_temp);
+
+//            printf("Received data from!! %d\n", sourceMpiTask);
+
+            MPI_Recv(&dummy, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        }
+
+        if (status.MPI_TAG == MPI_WORKER_READY) {
+
+            int sourceMpiTask = status.MPI_SOURCE;
+
+//            printf("Worker ready to work! %d\n", sourceMpiTask);
+
+//            printf("saljem dummy\n");
+            MPI_Send(&dummy, 1, MPI_INT, sourceMpiTask, MPI_TAG_TASK, MPI_COMM_WORLD);
+
+//            printf("saljem npr %d\n", npr);
+            MPI_Send(&npr, 1, MPI_INT, sourceMpiTask, MPI_DATA_TRANSFER, MPI_COMM_WORLD);//, requests + (reqcnt++));
+//            printf("saljem npd\n");
+            MPI_Send(&npd, 1, MPI_INT, sourceMpiTask, MPI_DATA_TRANSFER, MPI_COMM_WORLD);//, requests + (reqcnt++));
+//            printf("saljem binb\n");
+            MPI_Send(binb, nbins+1, MPI_FLOAT, sourceMpiTask, MPI_DATA_TRANSFER, MPI_COMM_WORLD);//, requests + (reqcnt++));
+//            printf("saljem data\n");
+            MPI_Send(data, npd, mpi_cartesian, sourceMpiTask, MPI_DATA_TRANSFER, MPI_COMM_WORLD);//, requests + (reqcnt++));
+//            printf("saljem random %d\n", npr);
+            MPI_Send(random, npr, mpi_cartesian, sourceMpiTask, MPI_DATA_TRANSFER, MPI_COMM_WORLD);//, requests + (reqcnt++));
+//            printf("saljem nista\n");
+
+//            printf("Sent data to %d\n",sourceMpiTask);
+        }
+
+        else {
+            printf("hmmm, somethings not right\n");
+        }
 
         cnt ++;
     }
 
-    for (rf = 0; rf < args.random_count; rf++) {
-        // memory for RR
-        RRS_temp = (long long*)malloc(memsize);
-        if (RRS_temp == NULL)
-        {
-            fprintf(stderr, "Unable to allocate memory\n");
-            exit(-1);
+    printf("finished all tasks...\n");
+
+    for (rf = 1; rf < commSize; rf++) {
+        int dummy;
+        MPI_Status status;
+
+        MPI_Recv(&dummy, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+
+        while (status.MPI_TAG == MPI_WORKER_DONE) {
+            int i;
+            int sourceMpiTask = status.MPI_SOURCE;
+            long long *RRS_temp, *DRS_temp;
+
+//            printf("Worker done with work! and no more jobs %d\n", sourceMpiTask);
+
+            RRS_temp = (long long*)malloc(memsize);
+            if (RRS_temp == NULL)
+            {
+                fprintf(stderr, "Unable to allocate memory\n");
+                exit(-1);
+            }
+            bzero(RRS_temp, memsize);
+
+            // memory for DR
+            DRS_temp = (long long*)malloc(memsize);
+            if (DRS_temp == NULL)
+            {
+                fprintf(stderr, "Unable to allocate memory\n");
+                exit(-1);
+            }
+            bzero(DRS_temp, memsize);
+
+//            printf("jel sam proso?\n");
+
+            MPI_Recv(RRS_temp, nbins+1, MPI_LONG_LONG, sourceMpiTask, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+            MPI_Recv(DRS_temp, nbins+1, MPI_LONG_LONG, sourceMpiTask, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+
+            for (i = 0; i < nbins+1; i ++) {
+                RRS[i] += RRS_temp[i];
+                DRS[i] += DRS_temp[i];
+            }
+
+            free(RRS_temp);
+            free(DRS_temp);
+
+            MPI_Recv(&dummy, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         }
-        bzero(RRS_temp, memsize);
 
-        // memory for DR
-        DRS_temp = (long long*)malloc(memsize);
-        if (DRS_temp == NULL)
-        {
-            fprintf(stderr, "Unable to allocate memory\n");
-            exit(-1);
+        if (status.MPI_TAG == MPI_WORKER_READY) {
+
+            int sourceMpiTask = status.MPI_SOURCE;
+
+//            printf("Worker ready to work! but no jobs more %d\n", sourceMpiTask);
+
+            MPI_Send(&dummy, 1, MPI_INT, sourceMpiTask, MPI_TAG_NO_MORE_TASKS, MPI_COMM_WORLD);
         }
-        bzero(DRS_temp, memsize);
-
-        MPI_Recv(&RRS_temp, );
     }
 
+//    printf("ja mislim da sam proso\n");
 
-    printf("%d requests\n", reqcnt);
-    for (int i = 0; i < reqcnt; i ++) {
-        MPI_Wait(requests[i]);
-    }
+//    printf("%d requests\n", reqcnt);
+//    for (int i = 0; i < reqcnt; i ++) {
+//        MPI_Wait(requests[i]);
+//    }
 
-    int opala = -1;
-    for (int i = 1; i < commSize; i ++) {
-        MPI_Send(&opala, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-    }
+//    int opala = -1;
+//    for (int i = 1; i < commSize; i ++) {
+//        MPI_Send(&opala, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+//    }
 
 
 
@@ -1245,8 +1374,10 @@ int parallel( struct pb_Parameters *params, options args )
         results->value[(k-1) * 3] = DD[k];
         results->value[(k-1) * 3 + 1] = DRS[k];
         results->value[(k-1) * 3 + 2] = RRS[k];
+//        printf("upisujem %d %d %d\n", (k-1) * 3, (k-1)*3 + 1, (k-1) * 3 + 2);
     }
 
+//    printf("hmm ? %d %d\n", DRS[k], RRS[k]);
 
     if(outfile != stdout)
         fclose(outfile);
@@ -1266,58 +1397,120 @@ int parallel( struct pb_Parameters *params, options args )
 
 int do_work() {
 
-    int npr,npd, nbins, binb;
+    int npr,npd, nbins;
+    float *binb;
     // memory for input data
-    struct cartesian * data = (struct cartesian*)malloc
-            (args.npoints* sizeof(struct cartesian));
-    struct cartesian * random = (struct cartesian*)malloc
-            (args.npoints* sizeof(struct cartesian));
+    struct cartesian * data;
+    struct cartesian * random;
 
     MPI_Status status;
+    long long *RRS, *DRS;
+
+    int npoints;
+    int memsize;
+    int k;
+
+    printf("DO_WORK %d\n", myrank);
+
+    MPI_Recv(&npoints, 1, MPI_INT, MPI_MASTER, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+    MPI_Recv(&nbins, 1, MPI_INT, MPI_MASTER, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+//    printf("primio nbins %d\n", nbins);
+    MPI_Recv(&memsize, 1, MPI_INT, MPI_MASTER, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+
+    binb = (float *)malloc((nbins+1)*sizeof(float));
+    if (binb == NULL)
+    {
+        fprintf(stderr, "Unable to allocate memory\n");
+        exit(-1);
+    }
+    for (k = 0; k < nbins+1; k++)
+    {
+        binb[k] = cos(pow(10, log10(min_arcmin) +
+                              k*1.0/bins_per_dec) / 60.0*D2R);
+    }
+
+    data = (struct cartesian*)malloc
+            (npoints* sizeof(struct cartesian));
+    random = (struct cartesian*)malloc
+            (npoints* sizeof(struct cartesian));
+
+    // memory for RR
+    RRS = (long long*)malloc(memsize);
+    if (RRS == NULL)
+    {
+        fprintf(stderr, "Unable to allocate memory\n");
+        exit(-1);
+    }
+
+    // memory for DR
+    DRS = (long long*)malloc(memsize);
+    if (DRS == NULL)
+    {
+        fprintf(stderr, "Unable to allocate memory\n");
+        exit(-1);
+    }
+
+//    if (myrank > 1) {
+//        while (1) ;
+//    }
 
     while(1) {
-        MPI_Recv(&npr, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+        int dummy;
 
-        if (npr == -1) {
+//        printf("  sending ready to work %d\n", myrank);
+
+        MPI_Send(&dummy, 1, MPI_INT, MPI_MASTER, MPI_WORKER_READY, MPI_COMM_WORLD);
+
+        MPI_Recv(&dummy, 1, MPI_INT, MPI_MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+
+        if (status.MPI_TAG == MPI_TAG_NO_MORE_TASKS) {
             break;
         }
 
-        MPI_Recv(&npd, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-        MPI_Recv(&nbins, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-        MPI_Recv(&binb, nbins+1, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, &status);
-        MPI_Recv(&data, npd, mpi_cartesian, 0, 0, MPI_COMM_WORLD, &status);
-        MPI_Recv(&random, npr, mpi_cartesian, 0, 0, MPI_COMM_WORLD, &status);
+//        printf("  Receiving data %d\n", myrank);
 
-        // memory for RR
-        RRS = (long long*)malloc(memsize);
-        if (RRS == NULL)
-        {
-            fprintf(stderr, "Unable to allocate memory\n");
-            exit(-1);
-        }
+//        printf("primam npr\n");
+        MPI_Recv(&npr, 1, MPI_INT, MPI_MASTER, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+//        printf("primio npr %d\n", npr);
+//        printf("primam npd\n");
+        MPI_Recv(&npd, 1, MPI_INT, MPI_MASTER, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+//        printf("primio npr %d\n", npr);
+//        printf("primam binb %d\n", nbins);
+        MPI_Recv(binb, nbins+1, MPI_FLOAT, MPI_MASTER, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+        //printf("status %d, %d\n",status.count, status.canceled );
+//        printf("primio npr %d\n", npr);
+//        printf("primam data\n");
+        MPI_Recv(data, npd, mpi_cartesian, MPI_MASTER, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+//        printf("primio npr %d\n", npr);
+//        printf("primam random %d\n", npr);
+        MPI_Recv(random, npr, mpi_cartesian, MPI_MASTER, MPI_DATA_TRANSFER, MPI_COMM_WORLD, &status);
+//        printf("primio npr %d\n", npr);
+//        printf("primam nista\n");
+
         bzero(RRS, memsize);
-
-        // memory for DR
-        DRS = (long long*)malloc(memsize);
-        if (DRS == NULL)
-        {
-            fprintf(stderr, "Unable to allocate memory\n");
-            exit(-1);
-        }
         bzero(DRS, memsize);
 
-
+//        printf("  Received data %d\n", myrank);
         // compute RR
         doCompute(random, npr, NULL, 0, 1, RRS, nbins, binb);
 
         // compute DR
         doCompute(data, npd, random, npr, 0, DRS, nbins, binb);
 
-        MPI_Send(RRS, nbins, MPI_LONG_LONG, 0, 0, MPI_COMM_WORLD);
-        MPI_Send(DRS, nbins, MPI_LONG_LONG, 0, 0, MPI_COMM_WORLD);
+//        printf("  sending done %d\n", myrank);
+
+        MPI_Send(&dummy, 1, MPI_INT, MPI_MASTER, MPI_WORKER_DONE, MPI_COMM_WORLD);
+
+//        printf("  sending data %d\n", myrank);
+        MPI_Send(RRS, nbins+1, MPI_LONG_LONG, MPI_MASTER, MPI_DATA_TRANSFER, MPI_COMM_WORLD);
+        MPI_Send(DRS, nbins+1, MPI_LONG_LONG, MPI_MASTER, MPI_DATA_TRANSFER, MPI_COMM_WORLD);
+
+
+//        printf("  sent data %d\n", myrank);
     }
 
 
+//    printf("im done! bye bye %d\n", myrank);
 }
 
 int sequential( struct pb_Parameters *params, options args, Result_Vect *results )
@@ -1341,7 +1534,7 @@ int sequential( struct pb_Parameters *params, options args, Result_Vect *results
                                        log10(min_arcmin)));
     memsize = (nbins+2)*sizeof(long long);
 
-    printf("PARALLEL RUN %d\n", myrank);
+    printf("SEQUENTIAL RUN %d\n", myrank);
 
     ctime1 = cpu_time ( );
 
@@ -1472,7 +1665,10 @@ int sequential( struct pb_Parameters *params, options args, Result_Vect *results
         results->value[(k-1) * 3] = DD[k];
         results->value[(k-1) * 3 + 1] = DRS[k];
         results->value[(k-1) * 3 + 2] = RRS[k];
+//        printf("upisujem %d %d %d\n", (k-1) * 3, (k-1)*3 + 1, (k-1) * 3 + 2);
     }
+
+//    printf("hmm  seq ? %d %d\n", DRS[k], RRS[k]);
 
     if(outfile != stdout)
         fclose(outfile);
@@ -1511,6 +1707,8 @@ int main(int argc, char * argv[]) {
     if (myrank == 0) {
         sequential(params, args, &seq_result);
     }
+
+    commitNewType();
 
     if (myrank == 0) {
         parallel(params, args, &par_result);
