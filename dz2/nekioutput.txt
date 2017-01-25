@@ -1,0 +1,361 @@
+Running with 8 number of procesors
+PARALLEL RUN 1
+PARALLEL RUN 4
+PARALLEL RUN 2
+PARALLEL RUN 3
+SEQUENTIAL RUN 0
+
+PARALLEL RUN 6
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+  A        = 0.000000
+  B        = 1000.000000
+  N        = 1000
+
+  Estimate quadratic rule =      15.9259362504970685
+  Estimate trapezoidal rule =       7.9682100024577442
+  Estimate Simpson 1/3 rule =       5.3173721411854942
+  Time quadratic rule = 0.000010
+  Time trapezoidal rule = 0.000008
+  Time Simpson 1/3 rule = 0.000008
+PARALLEL RUN 7
+
+  Normal end of execution.
+
+PARALLEL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+  A        = 0.000000
+  B        = 1000.000000
+  N        = 1000
+PARALLEL RUN 5
+
+  Estimate quadratic rule =      15.8941480260646486
+  Estimate trapezoidal rule =       7.9682099769418722
+  Estimate Simpson 1/3 rule =       5.3173721071302733
+  Time quadratic rule = 0.000067
+  Time trapezoidal rule = 0.000107
+  Time Simpson 1/3 rule = 0.000049
+
+  Normal end of execution.
+
+Results compare for quadratic:
+Result difference (parallel) - (sequential) = -0.031788
+Time gain (parallel) - (sequential) = -0.000056
+Time acceleration (sequential)/(parallel) = 0.156186
+TEST FAILED
+Results compare for trapezoidal:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = -0.000099
+Time acceleration (sequential)/(parallel) = 0.071186
+TEST PASSED
+Results compare for simpsons:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = -0.000041
+Time acceleration (sequential)/(parallel) = 0.171273
+TEST PASSED
+PARALLEL RUN 4
+PARALLEL RUN 6
+SEQUENTIAL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+  A        = 100.000000
+  B        = 10000.000000
+  N        = 1000
+
+  Estimate quadratic rule =       0.0000662178069136
+  Estimate trapezoidal rule =       0.0000631285150278
+  Estimate Simpson 1/3 rule =       0.0000630253033787
+  Time quadratic rule = 0.000010
+  Time trapezoidal rule = 0.000008
+  Time Simpson 1/3 rule = 0.000008
+
+PARALLEL RUN 1
+  Normal end of execution.
+
+PARALLEL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+  A        = 100.000000
+  B        = 10000.000000
+  N        = 1000
+PARALLEL RUN 3
+PARALLEL RUN 7
+PARALLEL RUN 2
+PARALLEL RUN 5
+
+  Estimate quadratic rule =       0.0000660924779737
+  Estimate trapezoidal rule =       0.0000631260388283
+  Estimate Simpson 1/3 rule =       0.0000630219985401
+  Time quadratic rule = 0.000068
+  Time trapezoidal rule = 0.000021
+  Time Simpson 1/3 rule = 0.000032
+
+  Normal end of execution.
+
+Results compare for quadratic:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = -0.000057
+Time acceleration (sequential)/(parallel) = 0.153422
+TEST PASSED
+Results compare for trapezoidal:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = -0.000013
+Time acceleration (sequential)/(parallel) = 0.364927
+TEST PASSED
+Results compare for simpsons:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = -0.000024
+Time acceleration (sequential)/(parallel) = 0.262571
+TEST PASSED
+PARALLEL RUN 6
+PARALLEL RUN 7
+PARALLEL RUN 2
+PARALLEL RUN 1
+PARALLEL RUN 5
+PARALLEL RUN 4
+SEQUENTIAL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+PARALLEL RUN 3
+  A        = 0.000000
+  B        = 1000.000000
+  N        = 1000000
+
+  Estimate quadratic rule =       0.5079508809664323
+  Estimate trapezoidal rule =       0.4999936337959058
+  Estimate Simpson 1/3 rule =       0.4999936337938103
+  Time quadratic rule = 0.011917
+  Time trapezoidal rule = 0.017416
+  Time Simpson 1/3 rule = 0.040871
+
+  Normal end of execution.
+
+PARALLEL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+  A        = 0.000000
+  B        = 1000.000000
+  N        = 1000000
+
+  Estimate quadratic rule =       0.5079498651383223
+  Estimate trapezoidal rule =       0.4999936337704520
+  Estimate Simpson 1/3 rule =       0.4999936337598623
+  Time quadratic rule = 0.007306
+  Time trapezoidal rule = 0.003937
+  Time Simpson 1/3 rule = 0.004327
+
+  Normal end of execution.
+
+Results compare for quadratic:
+Result difference (parallel) - (sequential) = -0.000001
+Time gain (parallel) - (sequential) = 0.004611
+Time acceleration (sequential)/(parallel) = 1.631128
+TEST PASSED
+Results compare for trapezoidal:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 0.013480
+Time acceleration (sequential)/(parallel) = 4.424204
+TEST PASSED
+Results compare for simpsons:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 0.036544
+Time acceleration (sequential)/(parallel) = 9.445973
+TEST PASSED
+PARALLEL RUN 3
+PARALLEL RUN 2
+PARALLEL RUN 4
+SEQUENTIAL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+PARALLEL RUN 1
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+PARALLEL RUN 7
+PARALLEL RUN 6
+
+  A        = 1000.000000
+  B        = 10000.000000
+  N        = 1000000
+PARALLEL RUN 5
+
+  Estimate quadratic rule =       0.0000057296011553
+  Estimate trapezoidal rule =       0.0000057295773776
+  Estimate Simpson 1/3 rule =       0.0000057295771865
+  Time quadratic rule = 0.010017
+  Time trapezoidal rule = 0.008068
+  Time Simpson 1/3 rule = 0.008383
+
+  Normal end of execution.
+
+PARALLEL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+  A        = 1000.000000
+  B        = 10000.000000
+  N        = 1000000
+
+  Estimate quadratic rule =       0.0000057295944464
+  Estimate trapezoidal rule =       0.0000057295754835
+  Estimate Simpson 1/3 rule =       0.0000057295746611
+  Time quadratic rule = 0.007086
+  Time trapezoidal rule = 0.003774
+  Time Simpson 1/3 rule = 0.008085
+
+  Normal end of execution.
+
+Results compare for quadratic:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 0.002931
+Time acceleration (sequential)/(parallel) = 1.413546
+TEST PASSED
+Results compare for trapezoidal:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 0.004294
+Time acceleration (sequential)/(parallel) = 2.137780
+TEST PASSED
+Results compare for simpsons:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 0.000298
+Time acceleration (sequential)/(parallel) = 1.036906
+TEST PASSED
+PARALLEL RUN 2
+SEQUENTIAL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+  A        = 0.000000
+  B        = 1000.000000
+  N        = 1000000000
+PARALLEL RUN 1
+PARALLEL RUN 5
+PARALLEL RUN 3
+PARALLEL RUN 4
+PARALLEL RUN 6
+PARALLEL RUN 7
+
+  Estimate quadratic rule =       0.5000015910565593
+  Estimate trapezoidal rule =       0.4999936338094476
+  Estimate Simpson 1/3 rule =       0.4999936338099849
+  Time quadratic rule = 22.687696
+  Time trapezoidal rule = 15.709577
+  Time Simpson 1/3 rule = 16.257911
+
+  Normal end of execution.
+
+PARALLEL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+  A        = 0.000000
+  B        = 1000.000000
+  N        = 1000000000
+
+  Estimate quadratic rule =       0.5000015900496219
+  Estimate trapezoidal rule =       0.4999936338047509
+  Estimate Simpson 1/3 rule =       0.4999936338036091
+  Time quadratic rule = 6.776043
+  Time trapezoidal rule = 7.342721
+  Time Simpson 1/3 rule = 7.851772
+
+  Normal end of execution.
+
+Results compare for quadratic:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 15.911652
+Time acceleration (sequential)/(parallel) = 3.348222
+TEST PASSED
+Results compare for trapezoidal:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 8.366856
+Time acceleration (sequential)/(parallel) = 2.139476
+TEST PASSED
+Results compare for simpsons:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 8.406139
+Time acceleration (sequential)/(parallel) = 2.070604
+TEST PASSED
+PARALLEL RUN 2
+PARALLEL RUN 6
+PARALLEL RUN 7
+PARALLEL RUN 3
+PARALLEL RUN 5
+PARALLEL RUN 1
+SEQUENTIAL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+  A        = 100.000000
+  B        = 10000.000000
+  N        = 1000000000
+PARALLEL RUN 4
+
+  Estimate quadratic rule =       0.0000630253597041
+  Estimate trapezoidal rule =       0.0000630253566149
+  Estimate Simpson 1/3 rule =       0.0000630253566147
+  Time quadratic rule = 20.054424
+  Time trapezoidal rule = 14.854998
+  Time Simpson 1/3 rule = 16.866276
+
+  Normal end of execution.
+
+PARALLEL RUN 0
+
+QUAD:
+  Estimate the integral of f(x) from A to B.
+  f(x) = 50 / ( pi * ( 2500 * x * x + 1 ) ).
+
+  A        = 100.000000
+  B        = 10000.000000
+  N        = 1000000000
+
+  Estimate quadratic rule =       0.0000630253595849
+  Estimate trapezoidal rule =       0.0000630253566125
+  Estimate Simpson 1/3 rule =       0.0000630253566114
+  Time quadratic rule = 6.706786
+  Time trapezoidal rule = 7.354672
+  Time Simpson 1/3 rule = 7.771873
+
+  Normal end of execution.
+
+Results compare for quadratic:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 13.347638
+Time acceleration (sequential)/(parallel) = 2.990169
+TEST PASSED
+Results compare for trapezoidal:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 7.500327
+Time acceleration (sequential)/(parallel) = 2.019804
+TEST PASSED
+Results compare for simpsons:
+Result difference (parallel) - (sequential) = -0.000000
+Time gain (parallel) - (sequential) = 9.094403
+Time acceleration (sequential)/(parallel) = 2.170169
+TEST PASSED

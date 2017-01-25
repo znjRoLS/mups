@@ -1056,8 +1056,8 @@ int doComputeParallel(struct cartesian *data1, int n1, struct cartesian *data2,
         }
     }
 
-    for (int i = 0 ; i < nbins; i ++) {
-        for (int j = 0; j < num_threads ; j ++) {
+    for (i = 0 ; i < nbins; i ++) {
+        for (j = 0; j < num_threads ; j ++) {
             data_bins[i] += data_bins_helper[i + j*nbins];
             if (data_bins_helper[i+ j * nbins] > 30000 || data_bins_helper[i+ j * nbins] < 0)
                 printf("%lld %d\n", data_bins_helper[i+ j * nbins], i + j * nbins);
